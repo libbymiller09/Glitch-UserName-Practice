@@ -1,39 +1,90 @@
-'use strict';
-
 const express = require('express');
+// you'll need to use `queryString` in your `gateKeeper` middleware function
+const queryString = require('query-string');
+
+
 const app = express();
 
-// we'll use this to look up old urls (the keys), and return
-// the route they should be redirected to (the values)
-const redirectsMap = {
-  "/old-url-1": "/new-url-1",
-  "/old-url-2": "/new-url-2",
-  "/old-url-3": "/new-url-1",
-  "/old-url-4": "/new-url-2"
-};
-
-
-function handleRedirects(req, res, next) {
-  if (Object.keys(redirectsMap).find((entry) => entry === req.path)) {
-      console.log(`Redirecting ${req.path} to ${redirectsMap[req.path]}`);
-      res.redirect(301, redirectsMap[req.path]);
-  } else {
-    next();
+// For this challenge, we're hard coding a list of users, because
+// we haven't learned about databases yet. Normally, you'd store
+// user data in a database, and query the database to find
+// a particular user.
+//
+// ALSO, for this challenge, we're storing user passwords as
+// plain text. This is something you should NEVER EVER EVER 
+// do in a real app. Instead, always use cryptographic
+// password hashing best practices (aka, the tried and true
+// ways to keep user passwords as secure as possible).
+// You can learn more about password hashing later
+// here: https://crackstation.net/hashing-security.htm
+const USERS = [
+  {id: 1,
+   firstName: 'Joe',
+   lastName: 'Schmoe',
+   userName: 'joeschmoe@business.com',
+   position: 'Sr. Engineer',
+   isAdmin: true,
+   // NEVER EVER EVER store passwords in plain text in real life. NEVER!!!!!!!!!!!
+   password: 'password'
+  },
+  {id: 2,
+   firstName: 'Sally',
+   lastName: 'Student',
+   userName: 'sallystudent@business.com',
+   position: 'Jr. Engineer',
+   isAdmin: true,
+   // NEVER EVER EVER store passwords in plain text in real life. NEVER!!!!!!!!!!!
+   password: 'password'
+  },
+  {id: 3,
+   firstName: 'Lila',
+   lastName: 'LeMonde',
+   userName: 'lila@business.com',
+   position: 'Growth Hacker',
+   isAdmin: false,
+   // NEVER EVER EVER store passwords in plain text in real life. NEVER!!!!!!!!!!!
+   password: 'password'
+  },
+  {id: 4,
+   firstName: 'Freddy',
+   lastName: 'Fun',
+   userName: 'freddy@business.com',
+   position: 'Community Manager',
+   isAdmin: false,
+   // NEVER EVER EVER store passwords in plain text in real life. NEVER!!!!!!!!!!!
+   password: 'password'
   }
+];
+
+
+// write a `gateKeeper` middleware function that:
+//  1. looks for a 'x-username-and-password' request header
+//  2. parses values sent for `user` and `pass` from 'x-username-and-password'
+//  3. looks for a user object matching the sent username and password values
+//  4. if matching user found, add the user object to the request object
+//     (aka, `req.user = matchedUser`)
+function gateKeeper(req, res, next) {
+  // your code should replace the line below
+  next();
 }
-  
-app.use(handleRedirects);
 
-// this route says that when users make a request to the
-// root URL, we'll return the HTML file at `views/index.html`
-app.get("/", (req, res) => res.sendFile(`${__dirname}/views/index.html` ));
+// Add the middleware to your app!
 
-// when a request is made to `/new-url-1`, we return
-// a plain text response saying `new-url-1`.
-app.get("/new-url-1", (req, res) => res.send("new-url-1"));
+// this endpoint returns a json object representing the user making the request,
+// IF they supply valid user credentials. This endpoint assumes that `gateKeeper` 
+// adds the user object to the request if valid credentials were supplied.
+app.get("/api/users/me", (req, res) => {
+  // send an error message if no or wrong credentials sent
+  if (req.user === undefined) {
+    return res.status(403).json({message: 'Must supply valid user credentials'});
+  }
+  // we're only returning a subset of the properties
+  // from the user object. Notably, we're *not*
+  // sending `password` or `isAdmin`.
+  const {firstName, lastName, id, userName, position} = req.user;
+  return res.json({firstName, lastName, id, userName, position});
+});
 
-app.get("/new-url-2", (req, res) => res.send("new-url-2"));
-
-app.listen(process.env.PORT || 8080, () => console.log(
-  `Your app is listening on port ${process.env.PORT || 8080}`));
-
+app.listen(process.env.PORT, () => {
+  console.log(`Your app is listening on port ${process.env.PORT}`);
+});
